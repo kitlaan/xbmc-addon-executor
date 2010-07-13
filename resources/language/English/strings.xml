@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<strings>
+    <!-- Plugin settings -->
+    <string id="30000">Windowize XBMC before execution</string>
+    <string id="30001">Disable XBMC screen idle detection</string>
+    <!-- Context menu -->
+    <string id="30100">Plugin settings</string>
+    <string id="30101">Add new program</string>
+    <string id="30102">Remove program</string>
+</strings>
