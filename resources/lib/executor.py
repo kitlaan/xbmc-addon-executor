@@ -3,44 +3,11 @@ import xbmc, xbmcaddon, xbmcgui, xbmcplugin
 
 Addon = xbmcaddon.Addon(id=os.path.basename(os.getcwd()))
 
-class Interface:
-    def __init__(self, base, hnd):
-        self.base = base
-        self.hndl = hnd
-
-    def _addMenu(self, key, item):
-        return (Addon.getLocalizedString(key),
-                "XBMC.RunPlugin(%s?%s)" % (self.base, urllib.urlencode(item)))
-
-    def _addItem(self, title, item):
-        u = "%s?%s" % (self.base, urllib.urlencode(item))
-        l = xbmcgui.ListItem(title)
-        m = [self._addMenu(30102, {'do': 'del', 'id': item}),
-             self._addMenu(30101, {'do': 'newgui'}),
-             self._addMenu(30100, {'do': 'settings'})]
-        l.addContextMenuItems(m) #, replaceItems=True)
-        xbmcplugin.addDirectoryItem(handle=self.hndl, url=u, listitem=l)
-
-    def _endItems(self):
-        xbmcplugin.endOfDirectory(handle=self.hndl, succeeded=True)
-
-    def showPrograms(self, programs):
-        for p in sorted(programs.keys()):
-            self._addItem(programs[p]['name'],
-                          {'do': 'program', 'id': programs[p]['name']})
-        self._endItems()
-
-    def getNewProgram(self):
-        #TODO
-        pass
-
 class Main:
     _base = sys.argv[0]
     _handle = int(sys.argv[1])
 
     def __init__(self):
-        self.interface = Interface(self._base, self._handle)
-
         self._parseArgs()
         self._getSettings()
         self._loadPrograms()
@@ -72,19 +39,16 @@ class Main:
             elif self.params['do'] == 'settings':
                 Addon.openSettings()
             elif self.params['do'] == 'newgui':
-                #TODO
-                pass
+                self._getNewProgram()
             elif self.params['do'] == 'del':
-                #TODO
-                pass
+                self._delProgram()
             elif self.params['do'] == 'add':
-                #TODO
-                pass
+                self._addProgram()
         else:
             if len(self.programs) > 0:
-                self.interface.showPrograms(self.programs)
+                self._showPrograms()
             else:
-                self.interface.getNewProgram()
+                self._getNewProgram()
 
     def _loadPrograms(self):
         basepath = xbmc.translatePath(Addon.getAddonInfo("Profile"))
@@ -138,6 +102,8 @@ class Main:
         windowed = None
 
         # Display a note that we're executing
+        print "%s: executing '%s' (idle=%b, window=%b)" % (self._base, p['exec'],
+                            self.settings['idleoff'], self.settings['windowed'])
         #self._rpc('XBMC.Notification', ['Executor', p['name'], '5000'], builtin=True)
 
         # Setup environment settings
@@ -161,4 +127,51 @@ class Main:
             self._rpc('Action', ['199'])
         if idleoff:
             self._rpc('SetGuiSetting', ['0', 'powermanagement.displaysoff', str(idleoff)])
+
+    def _delProgram(self):
+        try:
+            p = self.programs[self.params['id']]
+        except:
+            return
+
+        # TODO: prompt yes/no?
+        if False:
+            print "%s: removing program '%s'" % (self._base, p['name'])
+            if self.prograw and self.prograw.remove_section(p['name']):
+                self._savePrograms()
+
+                # TODO: force refresh list?
+
+    def _addProgram(self):
+        if self.prograw and ('name' in self.params) and ('exec' in self.params):
+            print "%s: adding program '%s' exec '%s'" % (self._base,
+                                self.params['name'], self.params['exec'])
+            if not self.prograw.has_section(self.params['name']):
+                self.prograw.add_section(self.params['name'])
+            self.set(self.params['name'], 'exec', self.params['exec'])
+            self._savePrograms()
+
+            # TODO: force refresh list?
+
+    def _showPrograms(self):
+        def addMenu(self, key, item):
+            return (Addon.getLocalizedString(key),
+                    "XBMC.RunPlugin(%s?%s)" % (self.base, urllib.urlencode(item)))
+
+        for p in sorted(self.programs.keys()):
+            title = self.programs[p]['name']
+            item = {'do': 'program', 'id': title}
+            u = "%s?%s" % (self.base, urllib.urlencode(item))
+
+            l = xbmcgui.ListItem(title)
+            l.addContextMenuItems([addMenu(30102, {'do': 'del', 'id': item}),
+                                   addMenu(30101, {'do': 'newgui'}),
+                                   addMenu(30100, {'do': 'settings'})])
+            xbmcplugin.addDirectoryItem(handle=self.hndl, url=u, listitem=l)
+
+        xbmcplugin.endOfDirectory(handle=self.hndl, succeeded=True)
+
+    def _getNewProgram(self):
+        #TODO: show gui for program input
+        pass
 
