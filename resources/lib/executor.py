@@ -102,8 +102,6 @@ class Main:
         windowed = None
 
         # Display a note that we're executing
-        print "%s: executing '%s' (idle=%b, window=%b)" % (self._base, p['exec'],
-                            self.settings['idleoff'], self.settings['windowed'])
         #self._rpc('XBMC.Notification', ['Executor', p['name'], '5000'], builtin=True)
 
         # Setup environment settings
