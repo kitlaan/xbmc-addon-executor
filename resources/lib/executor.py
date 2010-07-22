@@ -177,8 +177,6 @@ class Main:
         if not keyboard.isConfirmed():
             return
         arguments = unicode(keyboard.getText(), "utf-8")
-        if arguments:
-            program += u' ' + arguments
 
         # Get title to show
         keyboard = xbmc.Keyboard(os.path.basename(program),
@@ -188,7 +186,15 @@ class Main:
             return
         title = unicode(keyboard.getText(), "utf-8")
 
+        # Check if configuration exists...
+        if self.prograw.has_section(title):
+            if not dialog.yesno(Addon.getLocalizedString(30205),
+                                Addon.getLocalizedString(30206) % (title)):
+                return
+
         # Save to configuration
+        if arguments:
+            program += u' ' + arguments
         print "%s: adding program '%s': %s" % (self._base, title, (program))
         if not self.prograw.has_section(title):
             self.prograw.add_section(title)

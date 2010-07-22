@@ -13,4 +13,6 @@
     <string id="30202">Select the program to execute</string>
     <string id="30203">Enter the title of the program</string>
     <string id="30204">Enter arguments to program</string>
+    <string id="30205">Program Already Exists</string>
+    <string id="30206">Do you want to replace '%s'?</string>
 </strings>
