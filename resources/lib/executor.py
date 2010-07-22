@@ -39,16 +39,14 @@ class Main:
             elif self.params['do'] == 'settings':
                 Addon.openSettings()
             elif self.params['do'] == 'newgui':
-                self._getNewProgram()
+                self._addProgram()
             elif self.params['do'] == 'del':
                 self._delProgram()
-            elif self.params['do'] == 'add':
-                self._addProgram()
         else:
             if len(self.programs) > 0:
                 self._showPrograms()
             else:
-                self._getNewProgram()
+                self._addProgram()
 
     def _loadPrograms(self):
         basepath = xbmc.translatePath(Addon.getAddonInfo("Profile"))
@@ -74,6 +72,8 @@ class Main:
             except:
                 print "%s: Could not write configuration" % (self._base)
 
+    # helper routine for RPC calls, since some methods don't allow return variables
+    # JSON doesn't support all of the APIs yet, sadly
     def _rpc(self, method, params, type=None, builtin=False):
         #rpc = {'jsonrpc': '2.0', 'method': method, 'params': params}
         #return xbmc.executeJSONRPC(rpc)
@@ -134,44 +134,65 @@ class Main:
         except:
             return
 
-        # TODO: prompt yes/no?
-        if False:
+        # Query for removal
+        dialog = xbmcgui.Dialog()
+        if dialog.yesno(Addon.getLocalizedString(30200),
+                        Addon.getLocalizedString(30201) % (p['name'])):
             print "%s: removing program '%s'" % (self._base, p['name'])
             if self.prograw and self.prograw.remove_section(p['name']):
                 self._savePrograms()
-
-                # TODO: force refresh list?
-
-    def _addProgram(self):
-        if self.prograw and ('name' in self.params) and ('exec' in self.params):
-            print "%s: adding program '%s' exec '%s'" % (self._base,
-                                self.params['name'], self.params['exec'])
-            if not self.prograw.has_section(self.params['name']):
-                self.prograw.add_section(self.params['name'])
-            self.set(self.params['name'], 'exec', self.params['exec'])
-            self._savePrograms()
-
-            # TODO: force refresh list?
+                xbmc.executebuiltin("Container.Refresh")
 
     def _showPrograms(self):
-        def addMenu(self, key, item):
+        def addMenu(key, item):
             return (Addon.getLocalizedString(key),
-                    "XBMC.RunPlugin(%s?%s)" % (self.base, urllib.urlencode(item)))
+                    "XBMC.RunPlugin(%s?%s)" % (self._base, urllib.urlencode(item)))
 
-        for p in sorted(self.programs.keys()):
+        # Loop through sorted title list
+        for p in sorted(self.programs.keys(), lambda x,y: cmp(x.lower(), y.lower())):
             title = self.programs[p]['name']
-            item = {'do': 'program', 'id': title}
-            u = "%s?%s" % (self.base, urllib.urlencode(item))
+            u = "%s?%s" % (self._base, urllib.urlencode({'do': 'program', 'id': title}))
 
             l = xbmcgui.ListItem(title)
-            l.addContextMenuItems([addMenu(30102, {'do': 'del', 'id': item}),
+            l.addContextMenuItems([addMenu(30102, {'do': 'del', 'id': title}),
                                    addMenu(30101, {'do': 'newgui'}),
                                    addMenu(30100, {'do': 'settings'})])
-            xbmcplugin.addDirectoryItem(handle=self.hndl, url=u, listitem=l)
+            xbmcplugin.addDirectoryItem(handle=self._handle, url=u, listitem=l)
 
-        xbmcplugin.endOfDirectory(handle=self.hndl, succeeded=True)
+        xbmcplugin.endOfDirectory(handle=self._handle, succeeded=True)
 
-    def _getNewProgram(self):
-        #TODO: show gui for program input
-        pass
+    def _addProgram(self):
+        if not self.prograw:
+            return
+
+        # Get executable
+        dialog = xbmcgui.Dialog()
+        program = dialog.browse(1, Addon.getLocalizedString(30202), "files")
+        if not program:
+            return
+
+        # Get arguments
+        keyboard = xbmc.Keyboard('', Addon.getLocalizedString(30204))
+        keyboard.doModal()
+        if not keyboard.isConfirmed():
+            return
+        arguments = unicode(keyboard.getText(), "utf-8")
+        if arguments:
+            program += u' ' + arguments
+
+        # Get title to show
+        keyboard = xbmc.Keyboard(os.path.basename(program),
+                                 Addon.getLocalizedString(30203))
+        keyboard.doModal()
+        if not keyboard.isConfirmed():
+            return
+        title = unicode(keyboard.getText(), "utf-8")
+
+        # Save to configuration
+        print "%s: adding program '%s': %s" % (self._base, title, (program))
+        if not self.prograw.has_section(title):
+            self.prograw.add_section(title)
+        self.prograw.set(title, 'exec', program)
+        self._savePrograms()
+        xbmc.executebuiltin("Container.Refresh")
 
