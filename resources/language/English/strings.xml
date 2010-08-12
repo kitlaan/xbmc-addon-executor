@@ -3,6 +3,7 @@
     <!-- Plugin settings -->
     <string id="30000">Windowize XBMC before execution</string>
     <string id="30001">Disable XBMC screen idle detection</string>
+    <string id="30002">Disable LIRC before execution</string>
     <!-- Context menu -->
     <string id="30100">Plugin settings</string>
     <string id="30101">Add new program</string>

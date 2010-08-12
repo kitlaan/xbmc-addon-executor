@@ -31,6 +31,7 @@ class Main:
         self.settings = {}
         self.settings['windowed'] = (Addon.getSetting('windowed') == 'true')
         self.settings['idleoff'] = (Addon.getSetting('idleoff') == 'true')
+        self.settings['lircoff'] = (Addon.getSetting('lircoff') == 'true')
 
     def _handleArgs(self):
         if 'do' in self.params:
@@ -99,7 +100,6 @@ class Main:
             return
 
         idleoff = None
-        windowed = None
 
         # Display a note that we're executing
         #self._rpc('XBMC.Notification', ['Executor', p['name'], '5000'], builtin=True)
@@ -109,8 +109,9 @@ class Main:
             idleoff = self._rpc('GetGuiSetting', ['0', 'powermanagement.displaysoff'], type='int')
             self._rpc('SetGuiSetting', ['0', 'powermanagement.displaysoff', '0'])
         if self.settings['windowed']:
-            windowed = True
             self._rpc('Action', ['199'])
+        if self.settings['lircoff']:
+            self._rpc('LIRC.Stop', [], builtin=True)
 
         # Execute the command
         if sys.platform == 'win32':
@@ -121,9 +122,11 @@ class Main:
             print "%s: platform '%s' not supported" % (self._base, sys.platform)
 
         # Reverse environment settings
-        if windowed:
+        if self.settings['lircoff']:
+            self._rpc('LIRC.Start', [], builtin=True)
+        if self.settings['windowed']:
             self._rpc('Action', ['199'])
-        if idleoff:
+        if self.settings['idleoff']:
             self._rpc('SetGuiSetting', ['0', 'powermanagement.displaysoff', str(idleoff)])
 
     def _delProgram(self):
