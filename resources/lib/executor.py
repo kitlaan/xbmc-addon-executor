@@ -43,6 +43,8 @@ class Main:
                 self._addProgram()
             elif self.params['do'] == 'del':
                 self._delProgram()
+            elif self.params['do'] == 'icon':
+                self._setIcon()
         else:
             if len(self.programs) > 0:
                 self._showPrograms()
@@ -144,6 +146,38 @@ class Main:
                 self._savePrograms()
                 xbmc.executebuiltin("Container.Refresh")
 
+    def _setIcon(self):
+        try:
+            p = self.programs[self.params['id']]
+        except:
+            return
+
+        if not self.prograw or not self.prograw.has_section(p['name']):
+            return
+
+        theicon = ''
+        if 'icon' in p and p['icon']:
+            theicon = p['icon']
+            dialog = xbmcgui.Dialog()
+            if dialog.yesno(Addon.getLocalizedString(30208),
+                            Addon.getLocalizedString(30209)):
+                print "%s: clearing icon for program '%s'" % (self._base, p['name'])
+                self.prograw.remove_option(p['name'], 'icon')
+                self._savePrograms()
+                xbmc.executebuiltin("Container.Refresh")
+                return
+
+        # Query icon path
+        dialog = xbmcgui.Dialog()
+        iconpath = dialog.browse(2, Addon.getLocalizedString(30207) % (p['name']),
+                                 "files", '', True, False, theicon)
+        if not iconpath:
+            return
+
+        self.prograw.set(p['name'], 'icon', iconpath)
+        self._savePrograms()
+        xbmc.executebuiltin("Container.Refresh")
+
     def _showPrograms(self):
         def addMenu(key, item):
             return (Addon.getLocalizedString(key),
@@ -154,10 +188,16 @@ class Main:
             title = self.programs[p]['name']
             u = "%s?%s" % (self._base, urllib.urlencode({'do': 'program', 'id': title}))
 
-            l = xbmcgui.ListItem(title)
-            l.addContextMenuItems([addMenu(30102, {'do': 'del', 'id': title}),
-                                   addMenu(30101, {'do': 'newgui'}),
-                                   addMenu(30100, {'do': 'settings'})])
+            try:
+                thumb = self.programs[p]['icon']
+            except:
+                thumb = ''
+
+            l = xbmcgui.ListItem(title, thumbnailImage=thumb)
+            l.addContextMenuItems([addMenu(30103, {'do': 'icon', 'id': title}), # edit icon
+                                   addMenu(30102, {'do': 'del', 'id': title}),  # remove prog
+                                   addMenu(30101, {'do': 'newgui'}),            # add prog
+                                   addMenu(30100, {'do': 'settings'})])         # plugin setting
             xbmcplugin.addDirectoryItem(handle=self._handle, url=u, listitem=l)
 
         xbmcplugin.endOfDirectory(handle=self._handle, succeeded=True)
